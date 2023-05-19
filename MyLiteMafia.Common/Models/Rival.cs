@@ -2,11 +2,11 @@
 
 namespace MyLiteMafia.Common.Models
 {
-    public class Rival : Entity
+    public class Rival
     {
-        public Point Coordinates { get; set; }
+        public int RedisId { get; set; }
 
-        public override object CoordinatesData => Coordinates;
+        public Point Coordinates { get; set; }
 
         public Rival(int id, double latitude, double longitude) :
             this(latitude, longitude)

@@ -37,14 +37,12 @@ namespace MyLiteMafia
         public ObservableCollection<DatagridItemDto> RegistredEstablishments = new ObservableCollection<DatagridItemDto>();
 
         private readonly IRivalRepository _rivalRepository;
-        private readonly IEstablishmentRepository _establishmentRepository;
         private readonly IGeofenceService _geofenceService;
 
-        public MainWindow(IRivalRepository rivalRepository, IEstablishmentRepository establishmentRepository, IGeofenceService geofenceService)
+        public MainWindow(IRivalRepository rivalRepository, IGeofenceService geofenceService)
         {
             InitializeComponent();
             _rivalRepository = rivalRepository;
-            _establishmentRepository = establishmentRepository;
             _geofenceService = geofenceService;
 
             dgRivals.ItemsSource = RegistredRivals;
@@ -85,7 +83,7 @@ namespace MyLiteMafia
             {
                 RegistredRivals.Add(new DatagridItemDto()
                 {
-                    RedisId = rival.RedisId,
+                    Id = rival.RedisId,
                     Tile38Data = tile38Data,
                     CanvasItem = point
                 });
@@ -113,9 +111,15 @@ namespace MyLiteMafia
 
         private bool ValidateRivalId()
         {
-            if (!int.TryParse(txtRivalId.Text, out _))
+            if (!int.TryParse(txtRivalId.Text, out var rivalId))
             {
                 MessageBox.Show("Invalid rival ID");
+                return false;
+            }
+
+            if (!RegistredRivals.Any(x => x.Id == rivalId))
+            {
+                MessageBox.Show("Rival ID not registred");
                 return false;
             }
 
@@ -137,7 +141,7 @@ namespace MyLiteMafia
 
             var rival = new Rival(rivalId, latitude, longitude);
 
-            var existingRival = RegistredRivals.First(x => x.RedisId == rivalId);
+            var existingRival = RegistredRivals.First(x => x.Id == rivalId);
             Dispatcher.Invoke(() =>
             {
                 cnvMap.Children.Remove(existingRival.CanvasItem);
@@ -153,9 +157,11 @@ namespace MyLiteMafia
             var faker = new Faker();
             for (int i = 0; i < 10; i++)
             {
-                var establishment = await GenerateEstablishment(random, faker);
+                var establishment = await GenerateEstablishment(i, random, faker);
                 await AddToGeofenceAsync(establishment);
             }
+
+            btnAddEstablishment.Visibility = Visibility.Collapsed;
         }
 
         private async Task AddToGeofenceAsync(Establishment establishment)
@@ -163,10 +169,10 @@ namespace MyLiteMafia
             var southwesternPoint = establishment.Polygon.Coordinates.First().Coordinates.First();
             var northeasternPoint = establishment.Polygon.Coordinates.First().Coordinates[2];
 
-            await _geofenceService.CreateAndSubscribeGeofenceAsync(establishment.RedisId, southwesternPoint, northeasternPoint);
+            await _geofenceService.CreateAndSubscribeGeofenceAsync(establishment.Id, southwesternPoint, northeasternPoint);
         }
 
-        private async Task<Establishment> GenerateEstablishment(Random random, Faker faker)
+        private async Task<Establishment> GenerateEstablishment(int id, Random random, Faker faker)
         {
             var farthestAllowedLongitude = CanvasWidth - Establishment.Size;
             var intialLongitude = random.Next(0, farthestAllowedLongitude);
@@ -174,26 +180,24 @@ namespace MyLiteMafia
             var farthestAllowedLatitude = CanvasHeight - Establishment.Size;
             var initialLatitude = random.Next(0, farthestAllowedLatitude);
 
-            var establishment = EstablishmentFactory.Create(initialLatitude, intialLongitude, faker.Company.CompanyName());
-            var redisData = await _establishmentRepository.StoreAndGetDataAsync(establishment);
+            var establishment = EstablishmentFactory.Create(id, initialLatitude, intialLongitude, faker.Company.CompanyName());
 
             var polygon = ShapesConverter.Convert(establishment.Polygon);
             polygon.ToolTip = CreateEstablishmentTooltip(establishment);
 
-            AddEstablishmentToUI(establishment, redisData, polygon);
+            AddEstablishmentToUI(establishment, polygon);
 
             return establishment;
         }
 
-        private void AddEstablishmentToUI(Establishment establishment, string redisData, System.Windows.Shapes.Polygon polygon)
+        private void AddEstablishmentToUI(Establishment establishment, System.Windows.Shapes.Polygon polygon)
         {
             Dispatcher.Invoke(() =>
             {
                 RegistredEstablishments.Add(new DatagridItemDto()
                 {
                     Name = establishment.Name,
-                    RedisId = establishment.RedisId,
-                    Tile38Data = redisData
+                    Id = establishment.Id
                 });
 
                 cnvMap.Children.Add(polygon);

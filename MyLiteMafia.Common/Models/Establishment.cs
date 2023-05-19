@@ -2,18 +2,19 @@
 
 namespace MyLiteMafia.Common.Models
 {
-    public class Establishment : Entity
+    public class Establishment
     {
         public static int Size = 15;
+
+        public int Id { get; set; }
 
         public string Name { get; set; }
 
         public Polygon Polygon { get; set; }
 
-        public override object CoordinatesData => Polygon;
-
-        public Establishment(List<IPosition> positions, string name)
+        public Establishment(int id, List<IPosition> positions, string name)
         {
+            Id = id;
             Name = name;
             Polygon = new Polygon(new List<LineString>()
             {

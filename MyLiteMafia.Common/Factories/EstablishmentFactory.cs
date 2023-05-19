@@ -5,7 +5,7 @@ namespace MyLiteMafia.Common.Factories
 {
     public static class EstablishmentFactory
     {
-        public static Establishment Create(int initialLatitude, int initiaLongitude, string name)
+        public static Establishment Create(int id, int initialLatitude, int initiaLongitude, string name)
         {
             var positions = new List<IPosition>()
             {
@@ -16,7 +16,7 @@ namespace MyLiteMafia.Common.Factories
                 new Position(initialLatitude, initiaLongitude)
             };
 
-            return new Establishment(positions, name);
+            return new Establishment(id, positions, name);
         }
     }
 }

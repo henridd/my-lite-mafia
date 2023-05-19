@@ -4,7 +4,7 @@ namespace MyLiteMafia.DTOs
 {
     public class DatagridItemDto
     {
-        public int RedisId { get; set; }
+        public int Id { get; set; }
 
         public string Name { get; set; }
 

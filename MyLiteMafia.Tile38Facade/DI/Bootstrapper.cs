@@ -12,7 +12,6 @@ namespace MyLiteMafia.Tile38Facade.DI
             services.AddSingleton<IConnectionMultiplexer>(CreateConnectionMultiplexer());
 
             services.AddScoped<IRivalRepository, RivalRepository>();
-            services.AddScoped<IEstablishmentRepository, EstablishmentRepository>();
             services.AddScoped<IGeofenceService, GeofenceService>();
         }
 
