@@ -20,7 +20,6 @@ namespace MyLiteMafia.Tile38Facade.DI
         {
             var connection = ConnectionMultiplexer.Connect("localhost:9851");
             connection.GetDatabase().Execute("FLUSHDB");
-            connection.GetDatabase().Execute("DELCHAN", "establishment");
             return connection;
         }
     }
