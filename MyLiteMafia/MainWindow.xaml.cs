@@ -166,10 +166,7 @@ namespace MyLiteMafia
 
         private async Task AddToGeofenceAsync(Establishment establishment)
         {
-            var southwesternPoint = establishment.Polygon.Coordinates.First().Coordinates.First();
-            var northeasternPoint = establishment.Polygon.Coordinates.First().Coordinates[2];
-
-            await _geofenceService.CreateAndSubscribeGeofenceAsync(establishment.Id, southwesternPoint, northeasternPoint);
+            await _geofenceService.CreateAndSubscribeGeofenceAsync(establishment);
         }
 
         private async Task<Establishment> GenerateEstablishment(int id, Random random, Faker faker)

@@ -1,5 +1,7 @@
 ﻿using GeoJSON.Net.Geometry;
 using MyLiteMafia.Common.Events;
+using MyLiteMafia.Common.Models;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace MyLiteMafia.Tile38Facade.Services
@@ -7,8 +9,8 @@ namespace MyLiteMafia.Tile38Facade.Services
     public interface IGeofenceService
     {
         event EventHandler<GeofenceNotificationEventArgs> GeofenceNotificationReceived;
-        Task CreateAndSubscribeGeofenceAsync(int establishmentId, IPosition southwesternPoint, IPosition northeasternPoint);
-        Task<string> CreateNewGeofenceAsync(int establishmentId, IPosition southwesternPoint, IPosition northeasternPoint);
+        Task CreateAndSubscribeGeofenceAsync(Establishment establishment);
+        Task<string> CreateNewGeofenceAsync(Establishment establishment);
         Task SubscribeToGeofenceAsync(string channelName);
     }
 
@@ -25,16 +27,16 @@ namespace MyLiteMafia.Tile38Facade.Services
             _redis = redis;
         }
 
-        public async Task CreateAndSubscribeGeofenceAsync(int establishmentId, IPosition southwesternPoint, IPosition northeasternPoint)
+        public async Task CreateAndSubscribeGeofenceAsync(Establishment establishment)
         {
-            var channelName = await CreateNewGeofenceAsync(establishmentId, southwesternPoint, northeasternPoint);
+            var channelName = await CreateNewGeofenceAsync(establishment);
 
             await SubscribeToGeofenceAsync(channelName);
         }
 
-        public async Task<string> CreateNewGeofenceAsync(int establishmentId, IPosition southwesternPoint, IPosition northeasternPoint)
+        public async Task<string> CreateNewGeofenceAsync(Establishment establishment)
         {
-            var name = $"eg{establishmentId}";
+            var name = $"eg{establishment.Id}";
             await _database.ExecuteAsync("SETCHAN",
                 name,
                 "WITHIN",
@@ -42,11 +44,9 @@ namespace MyLiteMafia.Tile38Facade.Services
                 "FENCE",
                 "DETECT",
                 "enter,exit",
-                "BOUNDS",
-                southwesternPoint.Latitude,
-                southwesternPoint.Longitude,
-                northeasternPoint.Latitude,
-                northeasternPoint.Longitude);
+                "OBJECT",
+                JsonConvert.SerializeObject(establishment.Polygon)
+                );
 
             return name;
         }
