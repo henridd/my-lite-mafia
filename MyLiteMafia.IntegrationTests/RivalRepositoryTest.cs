@@ -1,4 +1,5 @@
 using GeoJSON.Net.Geometry;
+using Microsoft.Extensions.Configuration;
 using MyLiteMafia.Common.Models;
 using MyLiteMafia.Tile38Facade.Repositories;
 using Newtonsoft.Json;
@@ -8,6 +9,8 @@ namespace MyLiteMafia.IntegrationTests
 {
     public class Tests
     {
+        private readonly IConfiguration _configuration;
+
         [Test]
         public async Task StoreEntityCoordinatesAsync_ShouldStoreCoordinates()
         {
@@ -26,7 +29,14 @@ namespace MyLiteMafia.IntegrationTests
 
         private async Task<IRivalRepository> CreateRepositoryAsync()
         {
-            var connection = ConnectionMultiplexer.Connect("localhost:9851");
+            var builder = new ConfigurationBuilder();
+            builder.AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
+
+            var root = builder.Build();
+
+            var ipAddress= root["tile38ipaddress"];
+            var connection = ConnectionMultiplexer.Connect(ipAddress);
+
             await connection.GetDatabase().ExecuteAsync("FLUSHDB");
             return new RivalRepository(connection);
         }
