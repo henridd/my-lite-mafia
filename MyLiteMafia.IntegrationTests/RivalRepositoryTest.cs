@@ -9,8 +9,6 @@ namespace MyLiteMafia.IntegrationTests
 {
     public class Tests
     {
-        private readonly IConfiguration _configuration;
-
         [Test]
         public async Task StoreEntityCoordinatesAsync_ShouldStoreCoordinates()
         {
@@ -34,8 +32,18 @@ namespace MyLiteMafia.IntegrationTests
 
             var root = builder.Build();
 
-            var ipAddress= root["tile38ipaddress"];
-            var connection = ConnectionMultiplexer.Connect(ipAddress);
+            var ipAddress = root["tile38ipaddress"];
+            var port = root["port"];
+
+            return await ConnectToRepositoryAsync(ipAddress, port);
+        }
+
+        private async Task<IRivalRepository> ConnectToRepositoryAsync(string ipAddress, string port)
+        {
+            if (string.IsNullOrWhiteSpace(ipAddress))
+                throw new ArgumentNullException(nameof(ipAddress), "The provided IP Address is invalid: " + ipAddress);
+
+            var connection = ConnectionMultiplexer.Connect($"{ipAddress}:{port}");
 
             await connection.GetDatabase().ExecuteAsync("FLUSHDB");
             return new RivalRepository(connection);

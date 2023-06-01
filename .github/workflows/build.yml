@@ -1,0 +1,92 @@
+name: Build and test the application
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  CONFIGURATION: Release
+  DOTNET_VERSION: 6.0.x
+  WORKING_DIRECTORY: MyLiteMafia
+  TESTING_DIRECTORY: MyLiteMafia.IntegrationTests
+
+jobs:
+  terraform-setup:
+    name: "Setup infrastructure"
+    runs-on: ubuntu-latest
+    outputs:
+      tile38address: ${{ steps.apply.outputs.tile38_address }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}   
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: ./Terraform
+        id: init
+        run: terraform init
+      
+      - name: Terraform Validate
+        working-directory: ./Terraform
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform Apply
+        id: apply
+        working-directory: ./Terraform
+        run: terraform apply -auto-approve -input=false
+
+  build-and-test: 
+    runs-on: windows-latest 
+    needs:
+        - terraform-setup
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v3   
+
+    - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Set Tile38 IP Address
+      uses: microsoft/variable-substitution@v1
+      with:
+        files: '${{ env.TESTING_DIRECTORY }}/appsettings.json'
+      env:
+        tile38ipaddress: ${{ needs.terraform-setup.outputs.tile38address }}
+
+    - name: Build
+      run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }}
+      
+    - name: Test
+      run: dotnet test "${{ env.TESTING_DIRECTORY }}" --verbosity normal
+
+  terraform-destroy:
+    name: "Destroy infrastructure"
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs:
+        - build-and-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}  
+          
+      - name: Terraform Init
+        working-directory: ./Terraform
+        id: init
+        run: terraform init
+          
+      - name: Terraform Destroy
+        working-directory: ./Terraform
+        run: terraform destroy -auto-approve -input=false
